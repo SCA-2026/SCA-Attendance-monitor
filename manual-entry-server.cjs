@@ -13,7 +13,15 @@ const PORT = 3002;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// serve built frontend if available (Vite production build)
+const staticDir = fs.existsSync('dist') ? 'dist' : 'public';
+app.use(express.static(staticDir));
+
+// support client-side routing by returning index.html for unknown paths
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, staticDir, 'index.html'));
+});
 
 // Create enhanced webhook events table if it doesn't exist
 db.run(`CREATE TABLE IF NOT EXISTS webhook_events_enhanced (
