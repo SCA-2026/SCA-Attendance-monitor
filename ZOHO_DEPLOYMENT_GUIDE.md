@@ -41,9 +41,9 @@ Complete SCA Attendance Management System ready for Zoho deployment with:
 ### **1. Environment Setup**
 ```bash
 # Set environment variables for email
-export EMAIL_USER="your-company@spartecconsortium.com"
-export EMAIL_PASS="your-app-password"
-export COMPANY_EMAIL="admin@spartecconsortium.com"
+export EMAIL_USER="Ibrahim Ndeje"
+export EMAIL_PASS="098765"
+export COMPANY_EMAIL="indeje@spartec.co.ke"
 
 # Install dependencies
 npm install
@@ -96,8 +96,8 @@ npm run build
 const transporter = nodemailer.createTransporter({
     service: 'gmail',
     auth: {
-        user: 'your-gmail@gmail.com',
-        pass: 'your-app-password' // Use app password
+        user: 'indeje@spartec.co.ke',
+        pass: '098765' // Use app password
     }
 });
 ```
@@ -109,8 +109,8 @@ const transporter = nodemailer.createTransporter({
     port: 465,
     secure: true,
     auth: {
-        user: 'your-email@spartecconsortium.com',
-        pass: 'your-zoho-password'
+        user: 'indeje@spartec.co.ke',
+        pass: ''
     }
 });
 ```
