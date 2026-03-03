@@ -1,0 +1,24 @@
+[33mcommit fa188d1642c5b795b2b60788f46cdb52067ef52c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Ibrahim Ndeje <indeje@spartec.co.ke>
+Date:   Tue Mar 3 15:58:19 2026 +0300
+
+    new
+
+[33mcommit a494d3c4201af094fd229425fc9f311f635fb145[m
+Merge: 6c5bf0d c0c8657
+Author: Ibrahim Ndeje <indeje@spartec.co.ke>
+Date:   Tue Mar 3 15:58:05 2026 +0300
+
+    Merge branch 'main' of https://github.com/SCA-2026/SCA-Attendance-monitor
+
+[33mcommit 6c5bf0d31b68d876ad02524da2f0f396e559f99d[m
+Author: Ibrahim Ndeje <indeje@spartec.co.ke>
+Date:   Tue Mar 3 15:38:10 2026 +0300
+
+    Initial commit: SCA Attendance Monitor system with admin dashboard, employee management, and attendance tracking
+
+[33mcommit c0c8657f8f32138ffaf88c145e33102b5dac1be8[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: SCA-2026 <indeje@spartec.co.ke>
+Date:   Tue Mar 3 14:31:55 2026 +0300
+
+    Initial commit

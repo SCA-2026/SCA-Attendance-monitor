@@ -19,8 +19,14 @@ const staticDir = fs.existsSync('dist') ? 'dist' : 'public';
 app.use(express.static(staticDir));
 
 // support client-side routing by returning index.html for unknown paths
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, staticDir, 'index.html'));
+// custom middleware instead of wildcard route to prevent path parsing errors
+app.use((req, res, next) => {
+    // only intercept non-API GET requests
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, staticDir, 'index.html'));
+    } else {
+        next();
+    }
 });
 
 // Create enhanced webhook events table if it doesn't exist

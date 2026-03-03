@@ -1,0 +1,17 @@
+[build]
+  # build the React/Vite app
+  command = "npm run build"
+  publish = "dist"
+
+# single page application routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# if you don't have a backend on Netlify, proxy /api to another host:
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://your-api.example.com/:splat"
+#   status = 200
+#   force = true
