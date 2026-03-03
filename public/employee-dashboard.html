@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCA Employee Dashboard - Check In</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --sca-green: #66CC33;
+            --sca-yellow: #FFCC00;
+            --sca-dark: #343a40;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: rgba(255,255,255,0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --border-color: rgba(255,255,255,0.2);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #343a40;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .dashboard-container {
+                max-width: 100%;
+            }
+
+            .header-card {
+                padding: 1rem;
+            }
+
+            .welcome-section {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .attendance-history {
+                font-size: 0.875rem;
+            }
+
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+        }
+
+        .header-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .welcome-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .employee-info h2 {
+            color: var(--sca-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .employee-info p {
+            color: #666;
+            margin-bottom: 0;
+        }
+
+        .time-display {
+            text-align: right;
+        }
+
+        .current-time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--sca-dark);
+        }
+
+        .current-date {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .login-info {
+            background: #e8f5e9;
+            border-left: 4px solid var(--sca-green);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .login-info i {
+            color: var(--sca-green);
+            margin-right: 0.5rem;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .status-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 3rem;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: var(--sca-yellow);
+        }
+
+        .status-checked-in {
+            background: #d4edda;
+            color: var(--sca-green);
+        }
+
+        .status-late {
+            background: #f8d7da;
+            color: #dc3545;
+        }
+
+        .status-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-detail {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-checkin {
+            background: var(--sca-green);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-checkin:hover {
+            background: #5cb82c;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 204, 51, 0.4);
+        }
+
+        .btn-checkin:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-checkout {
+            background: var(--sca-yellow);
+            border: none;
+            color: var(--sca-dark);
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-checkout:hover {
+            background: #e6b800;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 204, 0, 0.4);
+        }
+
+        .btn-checkout:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .protocol-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .protocol-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .protocol-header i {
+            color: var(--sca-yellow);
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .protocol-time {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--sca-dark);
+        }
+
+        .progress-section {
+            margin-top: 1rem;
+        }
+
+        .progress {
+            height: 25px;
+            border-radius: 12px;
+            background: #e9ecef;
+        }
+
+        .progress-bar {
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .time-diff {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .time-diff.on-time {
+            color: var(--sca-green);
+        }
+
+        .time-diff.late {
+            color: #dc3545;
+        }
+
+        .integrity-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .integrity-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .integrity-item:last-child {
+            border-bottom: none;
+        }
+
+        .integrity-item i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .integrity-item i.verified {
+            color: var(--sca-green);
+        }
+
+        .integrity-item i.pending {
+            color: #ffc107;
+        }
+
+        .history-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            padding: 8px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .alert {
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            height: 250px;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+    
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="welcome-section">
+                <div class="employee-info">
+                    <h2 id="employeeName">Welcome, Employee</h2>
+                    <p><i class="fas fa-id-card me-2"></i>ID: <span id="employeeId">-</span></p>
+                </div>
+                <div class="time-display">
+                    <div class="current-time" id="currentTime">--:--</div>
+                    <div class="current-date" id="currentDate">---</div>
+                    <button class="logout-btn mt-2" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+            <div class="login-info">
+                <i class="fas fa-clock"></i>
+                <strong>System Login Time:</strong> <span id="loginTime">-</span>
+                <small class="text-muted ms-2">(Locked for integrity verification)</small>
+            </div>
+        </div>
+
+        <!-- Check-in Status -->
+        <div class="status-card">
+            <div class="status-icon status-pending" id="statusIcon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="status-text" id="statusText">Ready to Check In</div>
+            <div class="status-detail" id="statusDetail">
+                Click button below to record your attendance
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-checkin" id="checkinBtn" onclick="performCheckIn()">
+                    <i class="fas fa-fingerprint me-2"></i>CHECK IN NOW
+                </button>
+                <button class="btn btn-checkout" id="checkoutBtn" onclick="performCheckOut()" style="display: none;">
+                    <i class="fas fa-sign-out-alt me-2"></i>CHECK OUT NOW
+                </button>
+            </div>
+        </div>
+
+        <!-- Protocol Status -->
+        <div class="protocol-card">
+            <div class="protocol-header">
+                <i class="fas fa-business-time"></i>
+                <div>
+                    <div class="protocol-time">Company Protocol: 8:00 AM</div>
+                    <small class="text-muted">Official check-in deadline</small>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress">
+                    <div class="progress-bar" id="timeProgress" role="progressbar" style="width: 0%">
+                        --:--
+                    </div>
+                </div>
+                <div class="time-diff" id="timeDiff">
+                    Calculating...
+                </div>
+            </div>
+
+            <div class="integrity-section">
+                <h6><i class="fas fa-shield-alt me-2"></i>Integrity Verification</h6>
+                <div class="integrity-item">
+                    <i class="fas fa-check-circle verified"></i>
+                    <span>Login Time Captured: <strong id="integrityLogin">-</strong></span>
+                </div>
+                <div class="integrity-item">
+                    <i class="fas fa-hourglass-half pending" id="checkinIcon"></i>
+                    <span>Check-in Status: <strong id="integrityCheckin">Pending</strong></span>
+                </div>
+                <div class="integrity-item">
+                    <i class="fas fa-clock pending" id="protocolIcon"></i>
+                    <span>Protocol Compliance: <strong id="integrityProtocol">--</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance History Chart -->
+        <div class="history-card">
+            <h5><i class="fas fa-chart-line me-2"></i>Your Attendance History</h5>
+            <div class="chart-container">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let session = null;
+        let checkInStatus = 'pending';
+        let chart = null;
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+            } else {
+                icon.className = 'fas fa-sun';
+            }
+        }
+
+        // Get auth token from localStorage
+        function getAuthToken() {
+            const session = localStorage.getItem('sca_session');
+            if (session) {
+                const sessionData = JSON.parse(session);
+                return sessionData.token;
+            }
+            return null;
+        }
+
+        // Authenticated fetch wrapper
+        async function authFetch(url, options = {}) {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        // Check authentication on load
+        window.addEventListener('load', function() {
+            // Initialize theme
+            initTheme();
+            
+            const sessionData = localStorage.getItem('sca_session');
+            if (!sessionData) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            session = JSON.parse(sessionData);
+            
+            // Verify session is still valid
+            if (new Date() - new Date(session.loginTime) > 24 * 60 * 60 * 1000) {
+                localStorage.removeItem('sca_session');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // Verify employee role (not admin)
+            if (session.role === 'admin') {
+                window.location.href = '/admin-dashboard.html';
+                return;
+            }
+            
+            // Display employee info
+            document.getElementById('employeeName').textContent = `Welcome, ${session.employeeName}`;
+            document.getElementById('employeeId').textContent = session.employeeId;
+            document.getElementById('loginTime').textContent = formatDateTime(session.loginTime);
+            document.getElementById('integrityLogin').textContent = formatTime(session.loginTime);
+            
+            // Update check-in status from session
+            if (session.checkInTime) {
+                updateCheckInStatus(session.checkInStatus || 'checked-in', session.checkInTime);
+            }
+            
+            // Load attendance history
+            loadAttendanceHistory();
+            
+            // Start time updates
+            updateTime();
+            setInterval(updateTime, 1000);
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Update protocol progress
+            updateProtocolProgress(now);
+        }
+
+        function updateProtocolProgress(now) {
+            const protocolTime = new Date();
+            protocolTime.setHours(8, 0, 0, 0);
+            
+            const diffMinutes = Math.floor((now - protocolTime) / 60000);
+            const progressBar = document.getElementById('timeProgress');
+            const timeDiff = document.getElementById('timeDiff');
+            
+            if (diffMinutes < 0) {
+                // Before 8am - on time
+                const minutesUntil = Math.abs(diffMinutes);
+                progressBar.className = 'progress-bar bg-success';
+                progressBar.style.width = '100%';
+                progressBar.textContent = 'On Time';
+                timeDiff.className = 'time-diff on-time';
+                timeDiff.textContent = `${minutesUntil} minutes until 8:00 AM deadline`;
+                document.getElementById('integrityProtocol').textContent = 'Early Arrival';
+                document.getElementById('protocolIcon').className = 'fas fa-check-circle verified';
+            } else if (diffMinutes === 0) {
+                // Exactly 8am
+                progressBar.className = 'progress-bar bg-success';
+                progressBar.style.width = '100%';
+                progressBar.textContent = 'On Time';
+                timeDiff.className = 'time-diff on-time';
+                timeDiff.textContent = 'Perfect timing - 8:00 AM';
+                document.getElementById('integrityProtocol').textContent = 'On Time';
+                document.getElementById('protocolIcon').className = 'fas fa-check-circle verified';
+            } else {
+                // After 8am - late
+                const hoursLate = Math.floor(diffMinutes / 60);
+                const minsLate = diffMinutes % 60;
+                progressBar.className = 'progress-bar bg-danger';
+                progressBar.style.width = '100%';
+                progressBar.textContent = 'Late';
+                timeDiff.className = 'time-diff late';
+                timeDiff.textContent = `Late by ${hoursLate}h ${minsLate}m`;
+                document.getElementById('integrityProtocol').textContent = 'Late Arrival';
+                document.getElementById('protocolIcon').className = 'fas fa-exclamation-circle';
+                document.getElementById('protocolIcon').style.color = '#dc3545';
+            }
+        }
+
+        async function performCheckIn() {
+            const btn = document.getElementById('checkinBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            
+            try {
+                const checkInData = {
+                    employeeId: session.employeeId,
+                    employeeName: session.employeeName,
+                    loginTime: session.loginTime,
+                    checkInTime: new Date().toISOString(),
+                    token: session.token
+                };
+                
+                const response = await authFetch(`${API_BASE}/employee-checkin`, {
+                    method: 'POST',
+                    body: JSON.stringify(checkInData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update session
+                    session.checkInTime = result.data.checkInTime;
+                    session.checkInStatus = result.data.status;
+                    localStorage.setItem('sca_session', JSON.stringify(session));
+                    
+                    // Update UI
+                    updateCheckInStatus(result.data.status, result.data.checkInTime);
+                    
+                    // Show success
+                    alert('Check-in successful! Your attendance has been recorded.');
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-fingerprint me-2"></i>CHECK IN NOW';
+                    alert('Check-in failed: ' + result.error);
+                }
+            } catch (error) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-fingerprint me-2"></i>CHECK IN NOW';
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        async function performCheckOut() {
+            const btn = document.getElementById('checkoutBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            
+            try {
+                const checkOutData = {
+                    employeeId: session.employeeId,
+                    employeeName: session.employeeName,
+                    checkOutTime: new Date().toISOString(),
+                    token: session.token
+                };
+                
+                const response = await authFetch(`${API_BASE}/employee-checkout`, {
+                    method: 'POST',
+                    body: JSON.stringify(checkOutData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update session
+                    session.checkOutTime = result.data.checkOutTime;
+                    session.totalTimeInOffice = result.data.totalTimeInOffice;
+                    session.checkInStatus = 'checked-out';
+                    localStorage.setItem('sca_session', JSON.stringify(session));
+                    
+                    // Update UI
+                    updateCheckOutStatus(result.data.totalTimeInOffice);
+                    
+                    // Show success
+                    alert(`Check-out successful! Total time in office: ${result.data.totalTimeInOffice}`);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-out-alt me-2"></i>CHECK OUT NOW';
+                    alert('Check-out failed: ' + result.error);
+                }
+            } catch (error) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-out-alt me-2"></i>CHECK OUT NOW';
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        function updateCheckOutStatus(totalTimeInOffice) {
+            const icon = document.getElementById('statusIcon');
+            const text = document.getElementById('statusText');
+            const detail = document.getElementById('statusDetail');
+            const btn = document.getElementById('checkinBtn');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            
+            icon.className = 'status-icon status-completed';
+            icon.innerHTML = '<i class="fas fa-check"></i>';
+            text.textContent = 'Checked Out';
+            detail.textContent = `Total time: ${totalTimeInOffice}`;
+            btn.style.display = 'none';
+            checkoutBtn.style.display = 'none';
+        }
+
+        function updateCheckInStatus(status, checkInTime) {
+            const icon = document.getElementById('statusIcon');
+            const text = document.getElementById('statusText');
+            const detail = document.getElementById('statusDetail');
+            const btn = document.getElementById('checkinBtn');
+            const checkinIcon = document.getElementById('checkinIcon');
+            const integrityCheckin = document.getElementById('integrityCheckin');
+            
+            if (status === 'checked-in' || status === 'on-time') {
+                icon.className = 'status-icon status-checked-in';
+                icon.innerHTML = '<i class="fas fa-check"></i>';
+                text.textContent = 'Checked In Successfully';
+                detail.textContent = `Check-in Time: ${formatDateTime(checkInTime)}`;
+                btn.style.display = 'none';
+                checkoutBtn.style.display = 'block';
+                checkinIcon.className = 'fas fa-check-circle verified';
+                integrityCheckin.textContent = 'Completed';
+            } else if (status === 'late') {
+                icon.className = 'status-icon status-late';
+                icon.innerHTML = '<i class="fas fa-exclamation"></i>';
+                text.textContent = 'Checked In - Late Arrival';
+                detail.textContent = `Check-in Time: ${formatDateTime(checkInTime)} (After 8:00 AM)`;
+                btn.style.display = 'none';
+                checkinIcon.className = 'fas fa-exclamation-circle';
+                checkinIcon.style.color = '#dc3545';
+                integrityCheckin.textContent = 'Late';
+            }
+        }
+
+        async function loadAttendanceHistory() {
+            try {
+                const response = await authFetch(`${API_BASE}/employee-attendance?employeeId=${session.employeeId}`);
+                const result = await response.json();
+                
+                if (result.success && result.data.length > 0) {
+                    renderChart(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to load attendance history:', error);
+            }
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            
+            const labels = data.map(d => new Date(d.date).toLocaleDateString());
+            const onTime = data.map(d => d.status === 'on-time' ? 1 : 0);
+            const late = data.map(d => d.status === 'late' ? 1 : 0);
+            
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'On Time',
+                            data: onTime,
+                            backgroundColor: '#66CC33',
+                            borderColor: '#5cb82c',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Late',
+                            data: late,
+                            backgroundColor: '#dc3545',
+                            borderColor: '#c82333',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Last 30 Days Attendance'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('sca_session');
+            window.location.href = '/login.html';
+        }
+
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatTime(dateString) {
+            return new Date(dateString).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>

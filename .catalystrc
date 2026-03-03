@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "59258000000014001",
+      "name": "Spartecconsortiumafrica-SCA-Attendance-Monitor",
+      "domain": {
+        "id": "10120535780",
+        "name": "spartecconsortiumafrica-sca-attendance-monitor-916259103.development"
+      },
+      "timezone": "Africa/Nairobi",
+      "env": [
+        {
+          "idx": 1,
+          "id": "916259103",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}
