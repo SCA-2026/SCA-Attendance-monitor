@@ -4,9 +4,16 @@
   publish = "dist"
 
 # single page application routing
+# all client-side routes still map to index.html by default (unused here)
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
+
+# redirect root to the admin dashboard page
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/"
+  to = "/admin-dashboard.html"
   status = 200
 
 # if you don't have a backend on Netlify, proxy /api to another host:
