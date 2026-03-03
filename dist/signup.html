@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCA Employee Sign Up - Spartec Consortium Africa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sca-green: #66CC33;
+            --sca-yellow: #FFCC00;
+            --sca-dark: #343a40;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--sca-dark) 0%, #2c3e50 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .signup-container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-section img {
+            width: 120px;
+            margin-bottom: 1rem;
+        }
+
+        .logo-section h2 {
+            color: var(--sca-green);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-section p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--sca-dark);
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--sca-green);
+            box-shadow: 0 0 0 0.2rem rgba(102, 204, 51, 0.25);
+        }
+
+        .btn-signup {
+            background: var(--sca-green);
+            border: none;
+            color: white;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-signup:hover {
+            background: #5cb82c;
+            transform: translateY(-2px);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .login-link a {
+            color: var(--sca-green);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .success-message {
+            color: var(--sca-green);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .password-strength {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .strength-weak { color: #dc3545; }
+        .strength-medium { color: var(--sca-yellow); }
+        .strength-strong { color: var(--sca-green); }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="logo-section">
+            <img src="sca-logo.png" alt="SCA Logo">
+            <h2>Employee Sign Up</h2>
+            <p>Spartec Consortium Africa (SCA)<br>Create your account</p>
+        </div>
+
+        <form id="signupForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">
+                    <i class="fas fa-user me-2"></i>Employee ID (Numbers Only)
+                </label>
+                <input type="text" class="form-control" id="username" required placeholder="Enter your Employee ID (e.g., 12345)">
+            </div>
+
+            <div class="mb-3">
+                <label for="name" class="form-label">
+                    <i class="fas fa-user me-2"></i>Full Name
+                </label>
+                <input type="text" class="form-control" id="name" required placeholder="Enter your Full Name">
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">
+                    <i class="fas fa-envelope me-2"></i>Email Address
+                </label>
+                <input type="email" class="form-control" id="email" required placeholder="Enter your email address">
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">
+                    <i class="fas fa-lock me-2"></i>Password
+                </label>
+                <input type="password" class="form-control" id="password" required placeholder="Create a password (min 6 characters)">
+                <div class="password-strength" id="passwordStrength"></div>
+            </div>
+
+            <div class="mb-4">
+                <label for="confirmPassword" class="form-label">
+                    <i class="fas fa-lock me-2"></i>Confirm Password
+                </label>
+                <input type="password" class="form-control" id="confirmPassword" required placeholder="Confirm your password">
+            </div>
+
+            <button type="submit" class="btn btn-signup">
+                <i class="fas fa-user-plus me-2"></i>Create Account
+            </button>
+
+            <div id="errorMessage" class="error-message text-center mt-3">
+                <i class="fas fa-exclamation-circle me-1"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <div id="successMessage" class="success-message text-center mt-3">
+                <i class="fas fa-check-circle me-1"></i>
+                <span id="successText"></span>
+            </div>
+        </form>
+
+        <div class="login-link">
+            <p class="mb-0">Already have an account? <a href="/login.html">Login here</a></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                strengthDiv.textContent = '';
+                return;
+            }
+            
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            if (strength <= 2) {
+                strengthDiv.textContent = 'Weak password';
+                strengthDiv.className = 'password-strength strength-weak';
+            } else if (strength <= 4) {
+                strengthDiv.textContent = 'Medium strength';
+                strengthDiv.className = 'password-strength strength-medium';
+            } else {
+                strengthDiv.textContent = 'Strong password';
+                strengthDiv.className = 'password-strength strength-strong';
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            const successDiv = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Client-side validation
+            if (!username || !name || !email || !password || !confirmPassword) {
+                errorText.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Validate employee ID is numeric only
+            if (!/^\d+$/.test(username)) {
+                errorText.textContent = 'Employee ID must contain numbers only';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorText.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorText.textContent = 'Password must be at least 6 characters long';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorText.textContent = 'Please enter a valid email address';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        name,
+                        email,
+                        password,
+                        confirmPassword
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successText.textContent = 'Account created successfully! Redirecting to login...';
+                    successDiv.style.display = 'block';
+                    
+                    // Clear form
+                    document.getElementById('signupForm').reset();
+                    document.getElementById('passwordStrength').textContent = '';
+                    
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                } else {
+                    errorText.textContent = result.error;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                errorText.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

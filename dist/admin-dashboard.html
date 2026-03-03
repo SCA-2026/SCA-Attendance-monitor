@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCA Admin Dashboard - Spartec Consortium Africa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --sca-green: #66CC33;
+            --sca-yellow: #FFCC00;
+            --sca-dark: #343a40;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: rgba(255,255,255,0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --border-color: rgba(255,255,255,0.2);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #343a40;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-container {
+            display: flex;
+            gap: 20px;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile Responsive */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--sca-green);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                width: 280px;
+                z-index: 1000;
+                border-radius: 0;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-toggle {
+                display: block;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .header-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .admin-info {
+                text-align: left;
+                width: 100%;
+            }
+
+            .d-flex {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-section img {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(102,204,51,0.2);
+            color: var(--sca-green);
+        }
+
+        .nav-item.active {
+            background: var(--sca-green);
+            color: white;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--sca-green);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .btn-sca {
+            background: var(--sca-green);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-sca:hover {
+            background: #5cb82c;
+            transform: translateY(-2px);
+        }
+
+        .table {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .table thead th {
+            background: rgba(102,204,51,0.2);
+            border-color: var(--border-color);
+            color: var(--sca-green);
+        }
+
+        .table tbody td {
+            border-color: var(--border-color);
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .admin-info {
+            text-align: right;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            padding: 8px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .page-content {
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+    
+    <!-- Mobile Toggle Button -->
+    <button class="mobile-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+    
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-section">
+                <img src="sca-logo.png" alt="SCA Logo">
+                <h4>SCA Admin</h4>
+                <small>Attendance Management</small>
+            </div>
+            
+            <nav>
+                <a href="#" class="nav-item active" onclick="handleNavClick('dashboard', event)">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+                <a href="#" class="nav-item" onclick="handleNavClick('employees', event)">
+                    <i class="fas fa-users me-2"></i>Employees
+                </a>
+                <a href="#" class="nav-item" onclick="handleNavClick('attendance', event)">
+                    <i class="fas fa-clock me-2"></i>Attendance
+                </a>
+                <a href="#" class="nav-item" onclick="handleNavClick('devices', event)">
+                    <i class="fas fa-network-wired me-2"></i>Devices
+                </a>
+                <a href="#" class="nav-item" onclick="handleNavClick('reports', event)">
+                    <i class="fas fa-chart-line me-2"></i>Reports
+                </a>
+                <a href="#" class="nav-item" onclick="handleNavClick('settings', event)">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header-section">
+                <div>
+                    <h2>Admin Dashboard</h2>
+                    <p class="text-muted">Spartec Consortium Africa (SCA)</p>
+                </div>
+                <div class="admin-info">
+                    <div class="mb-2">
+                        <i class="fas fa-user-shield me-2"></i>
+                        <span id="adminName">Administrator</span>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalEmployees">0</div>
+                        <div class="stat-label">Total Employees</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayCheckins">0</div>
+                        <div class="stat-label">Today's Check-ins</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="lateArrivals">0</div>
+                        <div class="stat-label">Late Arrivals</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeUsers">0</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Weekly Attendance Overview</h5>
+                    <div style="height: 300px;">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h5><i class="fas fa-clock me-2"></i>Recent Activity</h5>
+                    <div id="recentActivity">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                            <p>Loading recent activity...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees Page -->
+            <div id="employees-page" class="page-content">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-users me-2"></i>Employee Management</h5>
+                        <div>
+                            <input type="text" class="form-control d-inline-block me-2" id="employeeSearchInput" placeholder="Search by ID or name..." style="width: 300px;">
+                            <button class="btn btn-sca me-2" onclick="searchEmployees()">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                            <button class="btn btn-sca" onclick="loadEmployees()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div id="employeesList">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                            <p>Loading employees...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Page -->
+            <div id="attendance-page" class="page-content">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-clock me-2"></i>Attendance Records</h5>
+                        <div>
+                            <input type="text" class="form-control d-inline-block me-2" id="attendanceSearchInput" placeholder="Search by ID or name..." style="width: 300px;">
+                            <button class="btn btn-sca me-2" onclick="searchAttendance()">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <input type="date" class="form-control" id="attendanceStartDate" style="width: auto;">
+                            <input type="date" class="form-control" id="attendanceEndDate" style="width: auto;">
+                            <input type="text" class="form-control" id="employeeIdFilter" placeholder="Employee ID" style="width: auto;">
+                            <input type="text" class="form-control" id="employeeNameFilter" placeholder="Employee Name" style="width: auto;">
+                            <button class="btn btn-sca" onclick="loadAllAttendance()">
+                                <i class="fas fa-filter me-2"></i>Load Records
+                            </button>
+                        </div>
+                    </div>
+                    <div id="attendanceTable">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                            <p>Loading attendance records...</p>
+                        </div>
+                    </div>
+                    <div id="attendancePagination" class="pagination-controls mt-3" style="display: none;">
+                        <!-- Pagination will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Devices Page -->
+            <div id="devices-page" class="page-content">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-network-wired me-2"></i>Network Device Discovery</h5>
+                        <div>
+                            <button class="btn btn-sca me-2" onclick="discoverDevices()">
+                                <i class="fas fa-search me-2"></i>Discover Devices
+                            </button>
+                            <button class="btn btn-sca" onclick="refreshDevices()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Network Info -->
+                    <div class="mb-3 p-3" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Network Range:</strong> 10.10.10.0/24
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Gateway:</strong> 10.10.10.1
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="devicesList">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-network-wired fa-2x mb-3"></i>
+                            <p>Click "Discover Devices" to scan the network for Hikvision devices</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="reports-page" class="page-content">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-chart-line me-2"></i>Enhanced Reports</h5>
+                        <div>
+                            <input type="text" class="form-control d-inline-block me-2" id="reportSearchInput" placeholder="Search by ID or name..." style="width: 300px;">
+                            <button class="btn btn-sca me-2" onclick="searchReports()">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                            <button class="btn btn-sca" onclick="loadAllReports()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Report Type Selection -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Report Type</label>
+                            <select class="form-select" id="reportType">
+                                <option value="daily">Daily Report</option>
+                                <option value="weekly">Weekly Report</option>
+                                <option value="monthly">Monthly Report</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="reportStartDate">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="reportEndDate">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div>
+                                <button class="btn btn-sca me-2" onclick="generateEnhancedReport()">
+                                    <i class="fas fa-file-alt me-2"></i>Generate Report
+                                </button>
+                                <button class="btn btn-outline" onclick="exportEnhancedReport()">
+                                    <i class="fas fa-file-excel me-2"></i>Export Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Employee Filters -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Employee ID Filter</label>
+                            <input type="text" class="form-control" id="reportEmployeeIdFilter" placeholder="Enter employee ID...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Employee Name Filter</label>
+                            <input type="text" class="form-control" id="reportEmployeeNameFilter" placeholder="Enter employee name...">
+                        </div>
+                    </div>
+                    
+                    <!-- Report Summary -->
+                    <div id="reportSummary" class="mb-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" id="summaryTotalEmployees">0</div>
+                                    <div class="stat-label">Total Employees</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" id="summaryTotalCheckins">0</div>
+                                    <div class="stat-label">Total Check-ins</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" id="summaryTotalLate">0</div>
+                                    <div class="stat-label">Late Arrivals</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" id="summaryAvgLate">0</div>
+                                    <div class="stat-label">Avg Late Minutes</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="reportsList">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-chart-line fa-2x mb-3"></i>
+                            <p>Generate a report to view attendance data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="page-content">
+                <div class="card">
+                    <h5><i class="fas fa-cog me-2"></i>System Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Company Check-in Time</label>
+                                <input type="time" class="form-control" value="08:00" id="checkinTime">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Late Threshold (minutes)</label>
+                                <input type="number" class="form-control" value="0" id="lateThreshold">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">System Status</label>
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>System Running Normally
+                                </div>
+                            </div>
+                            <button class="btn btn-sca" onclick="saveSettings()">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let session = null;
+        let currentReportData = [];
+        let weeklyChart = null;
+        let pieChart = null;
+        let barChart = null;
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+            } else {
+                icon.className = 'fas fa-sun';
+            }
+        }
+
+        // Get auth token from localStorage
+        function getAuthToken() {
+            const session = localStorage.getItem('sca_session');
+            if (session) {
+                const sessionData = JSON.parse(session);
+                return sessionData.token;
+            }
+            return null;
+        }
+
+        // Authenticated fetch wrapper
+        async function authFetch(url, options = {}) {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        // Helper functions
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('sca_session');
+            window.location.href = '/login.html';
+        }
+
+        function loadSettings() {
+            // Load settings from server (for demo, use defaults)
+            document.getElementById('checkinTime').value = '08:00';
+            document.getElementById('lateThreshold').value = '0';
+        }
+
+        function renderCharts(data) {
+            // Chart rendering implementation - render weekly attendance chart if it exists
+            if (weeklyChart) {
+                loadWeeklyChart();
+            }
+        }
+
+        function exportReportExcel() {
+            // Excel export implementation
+            console.log('Exporting to Excel...');
+        }
+
+        // Mobile sidebar functions
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        // Close sidebar when clicking nav item on mobile
+        function handleNavClick(pageName, event) {
+            showPage(pageName);
+            
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+        }
+
+        // Check authentication on load
+        window.addEventListener('load', function() {
+            // Initialize theme
+            initTheme();
+            
+            const sessionData = localStorage.getItem('sca_session');
+            if (!sessionData) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            session = JSON.parse(sessionData);
+            
+            // Verify admin role
+            if (session.role !== 'admin') {
+                window.location.href = '/employee-dashboard.html';
+                return;
+            }
+            
+            // Display admin name
+            document.getElementById('adminName').textContent = session.employeeName || 'Administrator';
+            
+            // Load dashboard data
+            loadDashboard();
+            loadWeeklyChart();
+            loadRecentActivity();
+        });
+
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(`${pageName}-page`).classList.add('active');
+            
+            // Add active class to clicked nav item - find the nav item that triggered this
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.textContent.toLowerCase().includes(pageName.replace('-', ' '))) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Load page-specific data
+            switch(pageName) {
+                case 'dashboard':
+                    loadDashboard();
+                    loadWeeklyChart();
+                    loadRecentActivity();
+                    break;
+                case 'employees':
+                    loadEmployees();
+                    break;
+                case 'attendance':
+                    loadAllAttendance();
+                    break;
+                case 'devices':
+                    // Devices page doesn't need auto-loading
+                    break;
+                case 'reports':
+                    loadAllReports();
+                    break;
+                case 'settings':
+                    loadSettings();
+                    break;
+            }
+        }
+
+        async function loadDashboard() {
+            try {
+                // Fetch employees data
+                const employeesResponse = await authFetch('/api/employees');
+                const employeesResult = await employeesResponse.json();
+                
+                // Fetch attendance data
+                const attendanceResponse = await authFetch('/api/attendance');
+                const attendanceResult = await attendanceResponse.json();
+                
+                if (employeesResult.success && attendanceResult.success) {
+                    const employees = employeesResult.data;
+                    const attendance = attendanceResult.data;
+                    
+                    // Calculate dashboard metrics
+                    const totalEmployees = employees.length;
+                    const activeEmployees = employees.filter(emp => {
+                        const lastSeen = new Date(emp.last_seen);
+                        const hoursSinceLastSeen = (new Date() - lastSeen) / (1000 * 60 * 60);
+                        return hoursSinceLastSeen < 24;
+                    }).length;
+                    
+                    // Get today's date and filter today's check-ins
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayAttendance = attendance.filter(record => {
+                        return record.event_time && record.event_time.startsWith(today);
+                    });
+                    
+                    const todayCheckIns = todayAttendance.length;
+                    const lateArrivals = todayAttendance.filter(r => r.status === 'late').length;
+                    
+                    // Update dashboard cards
+                    document.getElementById('totalEmployees').textContent = totalEmployees;
+                    document.getElementById('todayCheckins').textContent = todayCheckIns;
+                    document.getElementById('lateArrivals').textContent = lateArrivals;
+                    document.getElementById('activeUsers').textContent = activeEmployees;
+                    
+                    // Update charts
+                    renderCharts(attendance);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function updateRecentActivity(attendance) {
+            const activityHtml = attendance.map(event => `
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <div>
+                        <strong>${event.employee_name}</strong>
+                        <small class="text-muted d-block">${event.event_type} - ${event.device_name}</small>
+                    </div>
+                    <div class="text-end">
+                        <small>${formatDateTime(event.event_time)}</small>
+                        ${event.status === 'late' ? '<span class="badge bg-danger ms-2">Late</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('recentActivity').innerHTML = activityHtml || '<p class="text-muted text-center">No recent activity</p>';
+        }
+
+        async function loadWeeklyChart() {
+            try {
+                const endDate = new Date();
+                const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                
+                const response = await authFetch(`${API_BASE}/attendance?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const records = result.data.records || [];
+                    
+                    // Group by day
+                    const dailyStats = {};
+                    for (let i = 0; i < 7; i++) {
+                        const date = new Date(startDate);
+                        date.setDate(date.getDate() + i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        dailyStats[dateStr] = { onTime: 0, late: 0 };
+                    }
+                    
+                    records.forEach(record => {
+                        const date = new Date(record.event_time).toISOString().split('T')[0];
+                        if (dailyStats[date]) {
+                            if (record.status === 'late') {
+                                dailyStats[date].late++;
+                            } else {
+                                dailyStats[date].onTime++;
+                            }
+                        }
+                    });
+                    
+                    const labels = Object.keys(dailyStats).map(date => new Date(date).toLocaleDateString('en-US', { weekday: 'short' }));
+                    const onTimeData = Object.values(dailyStats).map(stat => stat.onTime);
+                    const lateData = Object.values(dailyStats).map(stat => stat.late);
+                    
+                    const ctx = document.getElementById('weeklyChart').getContext('2d');
+                    
+                    if (weeklyChart) weeklyChart.destroy();
+                    
+                    weeklyChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'On Time',
+                                    data: onTimeData,
+                                    backgroundColor: '#66CC33',
+                                    borderColor: '#5cb82c',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Late',
+                                    data: lateData,
+                                    backgroundColor: '#dc3545',
+                                    borderColor: '#c82333',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Last 7 Days Attendance'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading weekly chart:', error);
+            }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const response = await authFetch(`${API_BASE}/events`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const events = result.data.slice(0, 10);
+                    
+                    const activityHtml = events.map(event => `
+                        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                            <div>
+                                <strong>${event.employee_name}</strong>
+                                <small class="text-muted d-block">${event.event_type} - ${event.device_name}</small>
+                            </div>
+                            <div class="text-end">
+                                <small>${formatDateTime(event.event_time)}</small>
+                                ${event.status === 'late' ? '<span class="badge bg-danger ms-2">Late</span>' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentActivity').innerHTML = activityHtml || '<p class="text-muted text-center">No recent activity</p>';
+                }
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+        }
+
+        async function loadEmployees() {
+            try {
+                const response = await authFetch(`${API_BASE}/employees`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayEmployees(result.data);
+                } else {
+                    document.getElementById('employeesList').innerHTML = '<p class="text-danger">Error loading employees</p>';
+                }
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                document.getElementById('employeesList').innerHTML = '<p class="text-danger">Error loading employees</p>';
+            }
+        }
+
+        async function searchEmployees() {
+            const query = document.getElementById('employeeSearchInput').value.trim();
+            
+            if (!query) {
+                loadEmployees();
+                return;
+            }
+            
+            try {
+                const response = await authFetch(`${API_BASE}/employees/search?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayEmployees(result.data);
+                } else {
+                    alert('Error searching employees: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error searching employees: ' + error.message);
+            }
+        }
+
+        function displayEmployees(employees) {
+            const employeesList = document.getElementById('employeesList');
+            
+            if (!employees || employees.length === 0) {
+                employeesList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-users fa-2x mb-3"></i>
+                        <p>No employees found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let tableHTML = '<div class="table-responsive"><table class="table"><thead><tr>';
+            tableHTML += '<th>Employee ID</th>';
+            tableHTML += '<th>Name</th>';
+            tableHTML += '<th>Email</th>';
+            tableHTML += '<th>Device</th>';
+            tableHTML += '<th>First Seen</th>';
+            tableHTML += '<th>Last Seen</th>';
+            tableHTML += '<th>Total Events</th>';
+            tableHTML += '<th>Actions</th>';
+            tableHTML += '</tr></thead><tbody>';
+            
+            employees.forEach(function(employee) {
+                const email = employee.email || 'N/A';
+                const employeeId = employee.employee_id || '';
+                const employeeName = employee.employee_name || '';
+                const device = employee.device_name || employee.device || 'N/A';
+                const firstSeen = employee.first_seen || 'N/A';
+                const lastSeen = employee.last_seen || 'N/A';
+                const totalEvents = employee.total_events || 0;
+                
+                // Escape special characters for safe HTML attribute insertion
+                const safeId = (employeeId + '').replace(/'/g, "\\'");
+                const safeName = (employeeName + '').replace(/'/g, "\\'");
+                const safeEmail = (email + '').replace(/'/g, "\\'");
+                
+                tableHTML += '<tr>';
+                tableHTML += '<td>' + employeeId + '</td>';
+                tableHTML += '<td>' + employeeName + '</td>';
+                tableHTML += '<td>' + email + '</td>';
+                tableHTML += '<td>' + device + '</td>';
+                tableHTML += '<td>' + firstSeen + '</td>';
+                tableHTML += '<td>' + lastSeen + '</td>';
+                tableHTML += '<td>' + totalEvents + '</td>';
+                tableHTML += '<td>';
+                tableHTML += '<button class="btn btn-primary btn-sm me-1" onclick="editEmployee(\'' + safeId + '\', \'' + safeName + '\', \'' + safeEmail + '\')"><i class="fas fa-edit"></i> Edit</button>';
+                tableHTML += ' <button class="btn btn-danger btn-sm" onclick="deleteEmployee(\'' + safeId + '\', \'' + safeName + '\')"><i class="fas fa-trash"></i> Delete</button>';
+                tableHTML += '</td>';
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table></div>';
+            employeesList.innerHTML = tableHTML;
+        }
+
+        function editEmployee(employeeId, employeeName, email) {
+            const newName = prompt('Enter new name:', employeeName);
+            if (newName === null) return;
+            
+            const newEmail = prompt('Enter new email:', email === 'N/A' ? '' : email);
+            if (newEmail === null) return;
+            
+            updateEmployee(employeeId, newName, newEmail);
+        }
+
+        async function updateEmployee(employeeId, newName, newEmail) {
+            try {
+                const response = await authFetch('/api/employees/' + employeeId, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        employeeName: newName,
+                        email: newEmail
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Employee updated successfully!');
+                    loadEmployees();
+                } else {
+                    alert('Failed to update employee: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error updating employee: ' + error.message);
+            }
+        }
+
+        function deleteEmployee(employeeId, employeeName) {
+            if (!confirm('Are you sure you want to delete ' + employeeName + ' (' + employeeId + ')?')) {
+                return;
+            }
+            
+            removeEmployee(employeeId);
+        }
+
+        async function removeEmployee(employeeId) {
+            try {
+                const response = await authFetch('/api/employees/' + employeeId, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Employee deleted successfully!');
+                    loadEmployees();
+                } else {
+                    alert('Failed to delete employee: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error deleting employee: ' + error.message);
+            }
+        }
+
+        async function checkOutEmployee(employeeId, employeeName) {
+            if (!confirm(`Check out ${employeeName} (${employeeId}) now?`)) {
+                return;
+            }
+            
+            try {
+                const response = await authFetch('/api/employee-checkout', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        employeeId: employeeId,
+                        employeeName: employeeName,
+                        checkOutTime: new Date().toISOString()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`${employeeName} checked out successfully! Total time in office: ${result.data.totalTimeInOffice}`);
+                    loadAttendance(); // Refresh attendance list
+                } else {
+                    alert('Failed to check out: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error checking out employee:', error);
+                alert('Error checking out: ' + error.message);
+            }
+        }
+
+        // Attendance Management Functions
+        async function editAttendance(employeeId, employeeName, eventType, deviceName) {
+            const newEventType = prompt('Enter new event type (checkin/checkout):', eventType);
+            if (newEventType === null) return;
+            
+            const validTypes = ['checkin', 'checkout'];
+            if (!validTypes.includes(newEventType.toLowerCase())) {
+                alert('Event type must be either "checkin" or "checkout"');
+                return;
+            }
+            
+            try {
+                const response = await authFetch('/api/attendance/update', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        employeeId: employeeId,
+                        employeeName: employeeName,
+                        eventType: newEventType.toLowerCase(),
+                        deviceName: deviceName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Attendance record updated successfully!');
+                    loadAllAttendance();
+                } else {
+                    alert('Failed to update record: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error updating record: ' + error.message);
+            }
+        }
+
+        async function deleteAttendance(employeeId, employeeName) {
+            if (!confirm(`Are you sure you want to delete the attendance record for ${employeeName} (${employeeId})?`)) {
+                return;
+            }
+            
+            try {
+                const response = await authFetch('/api/attendance/delete', {
+                    method: 'DELETE',
+                    body: JSON.stringify({
+                        employeeId: employeeId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Attendance record deleted successfully!');
+                    loadAllAttendance();
+                } else {
+                    alert('Failed to delete record: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error deleting record: ' + error.message);
+            }
+        }
+
+        // Enhanced Attendance Functions
+        let currentPageAttendance = 1;
+        let attendancePagination = {};
+
+        async function loadAllAttendance(page = 1) {
+            const startDate = document.getElementById('attendanceStartDate').value;
+            const endDate = document.getElementById('attendanceEndDate').value;
+            const employeeId = document.getElementById('employeeIdFilter').value;
+            const employeeName = document.getElementById('employeeNameFilter').value;
+            
+            const params = new URLSearchParams({
+                page: page,
+                limit: 50
+            });
+            
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            if (employeeId) params.append('employeeId', employeeId);
+            if (employeeName) params.append('employeeName', employeeName);
+            
+            try {
+                const tableDiv = document.getElementById('attendanceTable');
+                tableDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading records...</div>';
+                
+                const response = await authFetch(`${API_BASE}/attendance/all?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAttendanceRecords(result.data.records);
+                    displayAttendancePagination(result.data.pagination);
+                    attendancePagination = result.data.pagination;
+                } else {
+                    tableDiv.innerHTML = '<p class="text-danger">Error loading attendance records</p>';
+                }
+            } catch (error) {
+                console.error('Error loading attendance records:', error);
+                const tableDiv = document.getElementById('attendanceTable');
+                tableDiv.innerHTML = '<p class="text-danger">Error loading attendance records</p>';
+            }
+        }
+
+        async function searchAttendance() {
+            const query = document.getElementById('attendanceSearchInput').value.trim();
+            
+            if (!query) {
+                loadAllAttendance();
+                return;
+            }
+            
+            const startDate = document.getElementById('attendanceStartDate').value;
+            const endDate = document.getElementById('attendanceEndDate').value;
+            
+            const params = new URLSearchParams({ query });
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            
+            try {
+                const response = await authFetch(`${API_BASE}/attendance/search?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAttendanceRecords(result.data);
+                    document.getElementById('attendancePagination').style.display = 'none';
+                } else {
+                    alert('Error searching attendance: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error searching attendance: ' + error.message);
+            }
+        }
+
+        function displayAttendanceRecords(records) {
+            const tableDiv = document.getElementById('attendanceTable');
+            
+            if (records.length === 0) {
+                tableDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-clock fa-2x mb-3"></i>
+                        <p>No attendance records found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let tableHTML = `
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Name</th>
+                                <th>Device</th>
+                                <th>Event Type</th>
+                                <th>Date/Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            records.forEach(record => {
+                const statusBadge = record.status === 'late' ? 'badge bg-warning' : 'badge bg-success';
+                const safeId = (record.employee_id + '').replace(/'/g, "\\'");
+                const safeName = (record.employee_name + '').replace(/'/g, "\\'");
+                const safeDevice = (record.device_name + '').replace(/'/g, "\\'");
+                
+                tableHTML += `
+                    <tr>
+                        <td>${record.employee_id}</td>
+                        <td>${record.employee_name}</td>
+                        <td>${record.device_name}</td>
+                        <td>${record.event_type}</td>
+                        <td>${formatDateTime(record.event_time)}</td>
+                        <td><span class="${statusBadge}">${record.status || 'normal'}</span></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-1" onclick="editAttendance('${safeId}', '${safeName}', '${record.event_type}', '${safeDevice}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAttendance('${safeId}', '${safeName}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table></div>';
+            tableDiv.innerHTML = tableHTML;
+        }
+
+        function displayAttendancePagination(pagination) {
+            const paginationDiv = document.getElementById('attendancePagination');
+            
+            if (pagination.totalPages <= 1) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            let paginationHTML = '<div class="pagination-controls">';
+            
+            // Previous button
+            if (pagination.page > 1) {
+                paginationHTML += `<button class="btn btn-outline me-2" onclick="loadAllAttendance(${pagination.page - 1})">Previous</button>`;
+            }
+            
+            // Page numbers
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                const activeClass = i === pagination.page ? 'btn-sca' : 'btn-outline';
+                paginationHTML += `<button class="btn ${activeClass} me-1" onclick="loadAllAttendance(${i})">${i}</button>`;
+            }
+            
+            // Next button
+            if (pagination.page < pagination.totalPages) {
+                paginationHTML += `<button class="btn btn-outline ms-2" onclick="loadAllAttendance(${pagination.page + 1})">Next</button>`;
+            }
+            
+            paginationHTML += `<span class="ms-3 text-muted">Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} total records)</span>`;
+            paginationHTML += '</div>';
+            
+            paginationDiv.innerHTML = paginationHTML;
+            paginationDiv.style.display = 'block';
+        }
+
+        // Device Discovery Functions
+        async function discoverDevices() {
+            const devicesList = document.getElementById('devicesList');
+            devicesList.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Scanning network for devices...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await authFetch('/api/discover-devices');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayDiscoveredDevices(result.data.devices);
+                } else {
+                    devicesList.innerHTML = `
+                        <div class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <p>Device discovery failed: ${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error discovering devices:', error);
+                devicesList.innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <p>Network error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayDiscoveredDevices(devices) {
+            const devicesList = document.getElementById('devicesList');
+            
+            if (devices.length === 0) {
+                devicesList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-network-wired fa-2x mb-3"></i>
+                        <p>No devices found on the network</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let devicesHTML = `
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Device IP</th>
+                                <th>Port</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            devices.forEach(device => {
+                const statusBadge = device.status === 'online' ? 'badge bg-success' : 'badge bg-secondary';
+                const lastSeen = formatDateTime(device.lastSeen);
+                
+                devicesHTML += `
+                    <tr>
+                        <td>${device.ip}</td>
+                        <td>${device.port}</td>
+                        <td>${device.name}</td>
+                        <td><span class="${statusBadge}">${device.status}</span></td>
+                        <td>${lastSeen}</td>
+                        <td>
+                            <button class="btn btn-sm btn-sca me-1" onclick="connectToDevice('${device.ip}', ${device.port})">
+                                <i class="fas fa-link"></i> Connect
+                            </button>
+                            <button class="btn btn-sm btn-outline me-1" onclick="testDevice('${device.ip}', ${device.port})">
+                                <i class="fas fa-vial"></i> Test
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            devicesHTML += '</tbody></table></div>';
+            devicesList.innerHTML = devicesHTML;
+        }
+
+        function refreshDevices() {
+            discoverDevices();
+        }
+
+        async function connectToDevice(ip, port) {
+            try {
+                const response = await authFetch('/api/devices', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        device_ip: ip,
+                        device_port: port,
+                        device_name: `Device ${ip}:${port}`,
+                        device_username: 'admin',
+                        device_password: 'admin'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Successfully connected to device ${ip}:${port}`);
+                } else {
+                    alert(`Failed to connect: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Connection error: ${error.message}`);
+            }
+        }
+
+        async function testDevice(ip, port) {
+            try {
+                const response = await authFetch(`/api/test-device?ip=${ip}&port=${port}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Device ${ip}:${port} is responding correctly`);
+                } else {
+                    alert(`Device test failed: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Device test error: ${error.message}`);
+            }
+        }
+
+        // Enhanced Reports Functions
+        async function generateEnhancedReport() {
+            const type = document.getElementById('reportType').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const employeeId = document.getElementById('reportEmployeeIdFilter').value;
+            const employeeName = document.getElementById('reportEmployeeNameFilter').value;
+            
+            const reportsList = document.getElementById('reportsList');
+            reportsList.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Generating ${type} report...</p>
+                </div>
+            `;
+            
+            try {
+                const params = new URLSearchParams({ type });
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                if (employeeId) params.append('employeeId', employeeId);
+                if (employeeName) params.append('employeeName', employeeName);
+                
+                const response = await authFetch(`/api/reports/enhanced?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayEnhancedReport(result.data);
+                } else {
+                    reportsList.innerHTML = `
+                        <div class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <p>Report generation failed: ${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error generating report:', error);
+                reportsList.innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <p>Network error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayEnhancedReport(data) {
+            const reportsList = document.getElementById('reportsList');
+            const reportSummary = document.getElementById('reportSummary');
+            
+            // Display summary
+            document.getElementById('summaryTotalEmployees').textContent = data.summary.totalEmployees;
+            document.getElementById('summaryTotalCheckins').textContent = data.summary.totalCheckIns;
+            document.getElementById('summaryTotalLate').textContent = data.summary.totalLate;
+            document.getElementById('summaryAvgLate').textContent = data.summary.avgLateMinutes;
+            reportSummary.style.display = 'block';
+            
+            if (data.records.length === 0) {
+                reportsList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-chart-line fa-2x mb-3"></i>
+                        <p>No records found for the selected criteria</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let reportsHTML = `
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Employee ID</th>
+                                <th>Employee Name</th>
+                                <th>Total Check-ins</th>
+                                <th>Late Count</th>
+                                <th>Avg Late Minutes</th>
+                                <th>Max Late Minutes</th>
+                                <th>First Check-in</th>
+                                <th>Last Check-in</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.records.forEach(record => {
+                reportsHTML += `
+                    <tr>
+                        <td>${formatDateTime(record.report_date)}</td>
+                        <td>${record.employee_id}</td>
+                        <td>${record.employee_name}</td>
+                        <td>${record.total_checkins}</td>
+                        <td>${record.late_count}</td>
+                        <td>${Math.round(record.avg_late_minutes || 0)}</td>
+                        <td>${record.max_late_minutes || 0}</td>
+                        <td>${formatDateTime(record.first_checkin)}</td>
+                        <td>${formatDateTime(record.last_checkin)}</td>
+                    </tr>
+                `;
+            });
+            
+            reportsHTML += '</tbody></table></div>';
+            reportsList.innerHTML = reportsHTML;
+        }
+
+        async function exportEnhancedReport() {
+            const type = document.getElementById('reportType').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const employeeId = document.getElementById('reportEmployeeIdFilter').value;
+            const employeeName = document.getElementById('reportEmployeeNameFilter').value;
+            
+            try {
+                const response = await authFetch('/api/reports/enhanced/export', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type,
+                        startDate,
+                        endDate,
+                        employeeId,
+                        employeeName
+                    })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `SCA_Attendance_${type}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to export report');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+
+        // Original Reports Functions (for backward compatibility)
+        async function loadAllReports() {
+            const type = document.getElementById('reportType').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const employeeId = document.getElementById('reportEmployeeIdFilter').value;
+            const employeeName = document.getElementById('reportEmployeeNameFilter').value;
+            
+            const params = new URLSearchParams({ type });
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            if (employeeId) params.append('employeeId', employeeId);
+            if (employeeName) params.append('employeeName', employeeName);
+            
+            try {
+                const response = await authFetch(`${API_BASE}/reports/all?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentReportData = result.data.records;
+                    displayReport(result.data.records, type, result.data.summary.period);
+                    document.getElementById('chartsContainer').style.display = 'block';
+                    renderCharts(result.data.records);
+                } else {
+                    alert('Error generating report: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error generating report: ' + error.message);
+            }
+        }
+
+        async function searchReports() {
+            const query = document.getElementById('reportSearchInput').value.trim();
+            
+            if (!query) {
+                loadAllReports();
+                return;
+            }
+            
+            const type = document.getElementById('reportType').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            
+            const params = new URLSearchParams({ query, type });
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            
+            try {
+                const response = await authFetch(`${API_BASE}/reports/search?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentReportData = result.data;
+                    displayReport(result.data, 'search', 'Search Results');
+                    document.getElementById('chartsContainer').style.display = 'block';
+                    renderCharts(result.data);
+                } else {
+                    alert('Error searching reports: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error searching reports: ' + error.message);
+            }
+        }
+
+        async function loadAttendance() {
+            const date = document.getElementById('attendanceDate').value || new Date().toISOString().split('T')[0];
+            
+            try {
+                const response = await authFetch(`${API_BASE}/attendance?startDate=${date}&endDate=${date}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const records = result.data.records || [];
+                    
+                    const attendanceHtml = `
+                        <div id="employeesList">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Employee ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Device</th>
+                                            <th>First Seen</th>
+                                            <th>Last Seen</th>
+                                            <th>Events</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeesTableBody">
+                                        <tr>
+                                            <td colspan="9" class="text-center">
+                                                <i class="fas fa-spinner fa-spin me-2"></i>Loading employees...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Device</th>
+                                        <th>Check-in Time</th>
+                                        <th>Status</th>
+                                        <th>Late Minutes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${records.map(record => `
+                                        <tr>
+                                            <td>${record.employee_id}</td>
+                                            <td>${record.employee_name}</td>
+                                            <td>${record.device_name}</td>
+                                            <td>${formatDateTime(record.event_time)}</td>
+                                            <td>
+                                                ${record.status === 'late' 
+                                                    ? '<span class="badge bg-danger">Late</span>' 
+                                                    : '<span class="badge bg-success">On Time</span>'}
+                                            </td>
+                                            <td>${record.late_minutes || 0}</td>
+                                            <td>
+                                                ${record.event_type === 'checkin' ? 
+                                                    `<button class="btn btn-sm btn-outline-warning" onclick="checkOutEmployee('${record.employee_id}', '${record.employee_name.replace(/'/g, "\\'")}')">
+                                                        <i class="fas fa-sign-out-alt"></i> Check Out
+                                                    </button>` 
+                                                    : '<span class="badge bg-secondary">Checked Out</span>'}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('attendanceTable').innerHTML = attendanceHtml || '<p class="text-muted text-center">No attendance records for this date</p>';
+                }
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+            }
+        }
+
+        function filterAttendance() {
+            loadAttendance();
+        }
+
+        // Report functions (reuse from dashboard.js)
+        async function generateDailyReport() {
+            const today = new Date().toISOString().split('T')[0];
+            await generateReport('daily', today, today);
+        }
+
+        async function generateWeeklyReport() {
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            await generateReport('weekly', startDate, endDate);
+        }
+
+        async function generateMonthlyReport() {
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            await generateReport('monthly', startDate, endDate);
+        }
+
+        async function generateReport(type, startDate, endDate) {
+            try {
+                const response = await authFetch(`${API_BASE}/attendance?startDate=${startDate}&endDate=${endDate}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentReportData = result.data.records || [];
+                    displayReport(currentReportData, type, startDate, endDate);
+                    document.getElementById('chartsContainer').style.display = 'block';
+                    renderCharts(currentReportData);
+                } else {
+                    alert('Error generating report: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        function displayReport(records, type, startDate, endDate) {
+            const reportContent = document.getElementById('reportContent');
+            
+            if (records.length === 0) {
+                reportContent.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>No attendance records found for ${type} report (${startDate} to ${endDate})</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group by employee
+            const employeeStats = {};
+            records.forEach(record => {
+                const id = record.employee_id || record.employeeId;
+                if (!employeeStats[id]) {
+                    employeeStats[id] = {
+                        id: id,
+                        name: record.employee_name || record.employeeName || 'Unknown',
+                        device: record.device_name || record.deviceName || 'Unknown',
+                        checkIns: 0,
+                        checkOuts: 0,
+                        totalEvents: 0
+                    };
+                }
+                employeeStats[id].totalEvents++;
+                if (record.eventType === 'access' || record.checkIn) {
+                    employeeStats[id].checkIns++;
+                }
+                if (record.checkOut) {
+                    employeeStats[id].checkOuts++;
+                }
+            });
+            
+            const statsArray = Object.values(employeeStats);
+            
+            let tableHTML = `
+                <div class="mb-3">
+                    <h4>${type.charAt(0).toUpperCase() + type.slice(1)} Report: ${startDate} to ${endDate}</h4>
+                    <p><strong>Total Employees:</strong> ${statsArray.length} | <strong>Total Records:</strong> ${records.length}</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Employee Name</th>
+                                <th>Device</th>
+                                <th>Check-ins</th>
+                                <th>Check-outs</th>
+                                <th>Total Events</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            statsArray.forEach(stat => {
+                tableHTML += `
+                    <tr>
+                        <td>${stat.id}</td>
+                        <td>${stat.name}</td>
+                        <td>${stat.device}</td>
+                        <td>${stat.checkIns}</td>
+                        <td>${stat.checkOuts}</td>
+                        <td>${stat.totalEvents}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            </div>
+            `;
+            
+            reportContent.innerHTML = tableHTML;
+        }
+
+        function renderCharts(records) {
+            // Destroy existing charts
+            if (pieChart) pieChart.destroy();
+            if (barChart) barChart.destroy();
+            
+            // Group by employee for charts
+            const employeeStats = {};
+            records.forEach(record => {
+                const name = record.employee_name || record.employeeName || 'Unknown';
+                if (!employeeStats[name]) {
+                    employeeStats[name] = { checkIns: 0, checkOuts: 0 };
+                }
+                if (record.eventType === 'access' || record.checkIn) {
+                    employeeStats[name].checkIns++;
+                }
+                if (record.checkOut) {
+                    employeeStats[name].checkOuts++;
+                }
+            });
+            
+            const labels = Object.keys(employeeStats);
+            const checkInData = labels.map(name => employeeStats[name].checkIns);
+            const checkOutData = labels.map(name => employeeStats[name].checkOuts);
+            
+            // Pie Chart - Overall attendance distribution
+            const pieCtx = document.getElementById('attendancePieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Check-ins', 'Check-outs'],
+                    datasets: [{
+                        data: [
+                            checkInData.reduce((a, b) => a + b, 0),
+                            checkOutData.reduce((a, b) => a + b, 0)
+                        ],
+                        backgroundColor: ['#66CC33', '#FFCC00'],
+                        borderColor: ['#5cb82c', '#e6b800'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Attendance Distribution'
+                        }
+                    }
+                }
+            });
+            
+            // Bar Chart - Per employee
+            const barCtx = document.getElementById('attendanceBarChart').getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Check-ins',
+                            data: checkInData,
+                            backgroundColor: '#66CC33',
+                            borderColor: '#5cb82c',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Check-outs',
+                            data: checkOutData,
+                            backgroundColor: '#FFCC00',
+                            borderColor: '#e6b800',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Employee Attendance Breakdown'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportReportExcel() {
+            if (currentReportData.length === 0) {
+                alert('No report data to export. Generate a report first.');
+                return;
+            }
+            
+            // Group by employee
+            const employeeStats = {};
+            currentReportData.forEach(record => {
+                const id = record.employee_id || record.employeeId;
+                if (!employeeStats[id]) {
+                    employeeStats[id] = {
+                        'Employee ID': id,
+                        'Employee Name': record.employee_name || record.employeeName || 'Unknown',
+                        'Device': record.device_name || record.deviceName || 'Unknown',
+                        'Check-ins': 0,
+                        'Check-outs': 0,
+                        'Total Events': 0
+                    };
+                }
+                employeeStats[id]['Total Events']++;
+                if (record.eventType === 'access' || record.checkIn) {
+                    employeeStats[id]['Check-ins']++;
+                }
+                if (record.checkOut) {
+                    employeeStats[id]['Check-outs']++;
+                }
+            });
+            
+            const data = Object.values(employeeStats);
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Add data worksheet
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
+            
+            // Create summary sheet
+            const summaryData = [
+                ['Report Generated', new Date().toLocaleString()],
+                ['Total Employees', data.length],
+                ['Total Check-ins', data.reduce((sum, row) => sum + row['Check-ins'], 0)],
+                ['Total Check-outs', data.reduce((sum, row) => sum + row['Check-outs'], 0)],
+                ['Total Events', data.reduce((sum, row) => sum + row['Total Events'], 0)]
+            ];
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+            
+            // Download
+            const filename = `SCA_Attendance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            alert('Excel report exported successfully!');
+        }
+
+        function loadSettings() {
+            // Load settings from server (for demo, use defaults)
+            document.getElementById('checkinTime').value = '08:00';
+            document.getElementById('lateThreshold').value = '0';
+        }
+
+        function saveSettings() {
+            alert('Settings saved successfully!');
+        }
+
+        function logout() {
+            localStorage.removeItem('sca_session');
+            window.location.href = '/login.html';
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Set default attendance date
+        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
