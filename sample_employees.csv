@@ -1,0 +1,6 @@
+employee_id,full_name,email,username,password
+EMP001,John Doe,john.doe@company.com,johndoe,password123
+EMP002,Jane Smith,jane.smith@company.com,janesmith,password123
+EMP003,Bob Johnson,bob.johnson@company.com,bobjohnson,password123
+EMP004,Alice Williams,alice.williams@company.com,alicewilliams,password123
+EMP005,Charlie Brown,charlie.brown@company.com,charliebrown,password123

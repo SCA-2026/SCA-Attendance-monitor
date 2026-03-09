@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <h1>Simple Edit User Test</h1>
+    <button onclick="testEdit()">Test Edit User</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testEdit() {
+            try {
+                const token = localStorage.getItem('sca_token');
+                console.log('Token from localStorage:', token);
+                
+                if (!token) {
+                    document.getElementById('result').innerHTML = 'No token found in localStorage';
+                    return;
+                }
+                
+                const response = await fetch('/api/admin/users/1', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                document.getElementById('result').innerHTML = 
+                    '<h3>Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test Login Flow</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Step 1: Login</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" value="admin" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" value="admin123" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Step 2: Check Storage</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info mb-3" onclick="checkStorage()">Check Local Storage</button>
+                        <div id="storageInfo"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Step 3: Test Admin Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2" data-action="report" data-type="daily">
+                            <i class="fas fa-file-excel me-2"></i>Daily Report
+                        </button>
+                        <button class="btn btn-success me-2" data-action="refresh-data">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                        </button>
+                        <button class="btn btn-warning me-2" data-action="upload-excel">
+                            <i class="fas fa-file-excel me-2"></i>Import Excel
+                        </button>
+                        <button class="btn btn-danger me-2" data-action="logout">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </button>
+                        
+                        <div class="mt-3">
+                            <h6>Action Results:</h6>
+                            <div id="actionResults" class="border p-3 bg-light" style="min-height: 100px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Console Output</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleOutput" class="border p-3 bg-dark text-light" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : '#51cf66';
+            consoleOutput.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            console.log('Attempting login for:', username);
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.success) {
+                    console.log('Login successful, storing token and user data');
+                    localStorage.setItem('sca_token', data.token);
+                    localStorage.setItem('sca_user', JSON.stringify(data.user));
+                    
+                    document.getElementById('actionResults').innerHTML = 
+                        '<div class="alert alert-success">Login successful! Token and user data stored.</div>';
+                    
+                    checkStorage();
+                    setupEventListeners();
+                } else {
+                    console.error('Login failed:', data.error);
+                    document.getElementById('actionResults').innerHTML = 
+                        `<div class="alert alert-danger">Login failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('actionResults').innerHTML = 
+                    `<div class="alert alert-danger">Login error: ${error.message}</div>`;
+            }
+        });
+        
+        // Check storage
+        function checkStorage() {
+            const token = localStorage.getItem('sca_token');
+            const user = localStorage.getItem('sca_user');
+            
+            let html = '<h6>Local Storage Contents:</h6>';
+            html += `<p><strong>Token exists:</strong> ${!!token}</p>`;
+            html += `<p><strong>User data exists:</strong> ${!!user}</p>`;
+            
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    html += `<p><strong>User Role:</strong> ${userData.role || 'undefined'}</p>`;
+                    html += `<p><strong>User Name:</strong> ${userData.full_name || 'undefined'}</p>`;
+                    html += `<p><strong>Username:</strong> ${userData.username || 'undefined'}</p>`;
+                } catch (error) {
+                    html += `<p class="text-danger"><strong>Error parsing user data:</strong> ${error.message}</p>`;
+                }
+            }
+            
+            document.getElementById('storageInfo').innerHTML = html;
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            const elements = document.querySelectorAll('[data-action]');
+            console.log('Found elements with data-action:', elements.length);
+            
+            elements.forEach((el, index) => {
+                console.log(`Setting up listener for element ${index}:`, el.getAttribute('data-action'));
+                el.addEventListener('click', (e) => {
+                    console.log('Clicked element with action:', el.getAttribute('data-action'));
+                    e.preventDefault();
+                    const action = el.getAttribute('data-action');
+                    const dataType = el.getAttribute('data-type');
+                    
+                    console.log('Action clicked:', action, 'Type:', dataType);
+                    
+                    let result = '';
+                    switch(action) {
+                        case 'report':
+                            result = `Generating ${dataType} report...`;
+                            console.log('Generating report:', dataType);
+                            break;
+                        case 'refresh-data':
+                            result = 'Refreshing data...';
+                            console.log('Refreshing data');
+                            break;
+                        case 'upload-excel':
+                            result = 'Opening Excel upload modal...';
+                            console.log('Opening Excel upload');
+                            break;
+                        case 'logout':
+                            result = 'Logging out...';
+                            console.log('Logging out');
+                            localStorage.removeItem('sca_token');
+                            localStorage.removeItem('sca_user');
+                            break;
+                    }
+                    
+                    document.getElementById('actionResults').innerHTML = 
+                        `<div class="alert alert-info">${result}</div>`;
+                });
+            });
+        }
+        
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded');
+            checkStorage();
+        });
+    </script>
+</body>
+</html>
