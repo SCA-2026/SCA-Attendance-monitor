@@ -66,7 +66,10 @@
     <div class="container-fluid vh-100 d-flex align-items-center justify-content-center bg-gradient">
         <div class="text-center text-white">
             <div class="mb-4">
-                <img src="/uploads/logo.png" alt="SCA Logo" class="logo-img" onerror="this.style.display='none'">
+                <img src="/uploads/sca-logo.png" alt="SCA Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div style="display: none; width: 120px; height: 120px; margin: 0 auto 20px; background: linear-gradient(135deg, #000000, #00C853); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                    SCA
+                </div>
                 <h1 class="display-4 fw-bold mb-3">SCA Attendance System</h1>
                 <p class="lead">Professional Attendance Management with Email Notifications</p>
             </div>

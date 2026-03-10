@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Initialize real-time notifications
+        initializeNotifications(token, userData.id);
+        
         // Set employee name
         const fullName = userData.full_name || 'Employee';
         document.getElementById('employeeName').textContent = fullName;
@@ -531,3 +534,121 @@ document.addEventListener('keydown', function(e) {
         logout();
     }
 });
+
+// Real-time Notification System
+let socket = null;
+
+function initializeNotifications(token, userId) {
+    // Load Socket.IO client
+    const script = document.createElement('script');
+    script.src = 'https://cdn.socket.io/4.7.4/socket.io.min.js';
+    script.onload = function() {
+        socket = io();
+        
+        // Authenticate with WebSocket
+        socket.emit('authenticate', token);
+        
+        // Handle real-time notifications
+        socket.on('notification', function(data) {
+            showNotification(data);
+        });
+        
+        // Handle connection events
+        socket.on('connect', function() {
+            console.log('🔌 Connected to real-time notifications');
+            socket.emit('authenticate', token);
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('🔌 Disconnected from real-time notifications');
+        });
+    };
+    document.head.appendChild(script);
+}
+
+function showNotification(data) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification-toast';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas ${getNotificationIcon(data.type)}"></i>
+            </div>
+            <div class="notification-text">
+                <div class="notification-title">${data.title}</div>
+                <div class="notification-message">${data.message}</div>
+                <div class="notification-time">${formatNotificationTime(data.timestamp)}</div>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+    
+    // Play notification sound (optional)
+    playNotificationSound();
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'checkin': 'fa-sign-in-alt text-success',
+        'checkout': 'fa-sign-out-alt text-warning',
+        'attendance': 'fa-clock text-info',
+        'general': 'fa-bell text-primary',
+        'warning': 'fa-exclamation-triangle text-warning',
+        'error': 'fa-exclamation-circle text-danger'
+    };
+    return icons[type] || icons.general;
+}
+
+function formatNotificationTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function playNotificationSound() {
+    // Create a subtle notification sound
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBi6GyvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+    audio.volume = 0.3;
+    audio.play().catch(e => console.log('Could not play notification sound:', e));
+}
+
+// Test email configuration
+async function testEmailConfiguration() {
+    try {
+        const token = localStorage.getItem('sca_token');
+        
+        showAlert('Sending test email...', 'info');
+        
+        const response = await fetch('/api/test-email', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}` 
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('✅ Test email sent successfully! Check your inbox.', 'success');
+        } else {
+            showAlert('❌ Test email failed: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        console.error('Test email error:', error);
+        showAlert('Error sending test email', 'danger');
+    }
+}

@@ -18,22 +18,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const userData = JSON.parse(user);
         console.log('User data:', userData);
         if (userData.role !== 'admin') {
-            console.log('User is not admin, redirecting to employee page');
+            console.log('Not admin, redirecting to employee page');
             window.location.href = '/employee.html';
             return;
         }
         
+        // Initialize real-time notifications
+        initializeNotifications(token, userData.id);
+        
         console.log('Admin authenticated successfully');
         
-        // Set admin name
-        document.getElementById('adminName').textContent = userData.full_name || 'Admin';
+        // Initialize sidebar functionality
+        initSidebar();
         
         // Load initial data
         loadStats();
-        loadUsers();
+        loadRecentCheckins();
         
         // Auto-refresh stats every 30 seconds
-        setInterval(loadStats, 30000);
+        setInterval(() => {
+            if (document.getElementById('dashboard-section').classList.contains('active')) {
+                loadStats();
+                loadRecentCheckins();
+            }
+        }, 30000);
         
         // Attach event listeners for data-action attributes (CSP compliance)
         // Small delay to ensure DOM is fully loaded
@@ -46,6 +54,185 @@ document.addEventListener('DOMContentLoaded', function() {
         logout();
     }
 });
+
+// Initialize sidebar functionality
+function initSidebar() {
+    console.log('Initializing sidebar...');
+    
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768;
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    if (!sidebar || !sidebarToggle) return;
+    
+    // Set initial state
+    if (isMobile) {
+        sidebar.classList.add('collapsed');
+        sidebarToggle.classList.remove('mobile-open');
+    } else {
+        sidebar.classList.remove('collapsed');
+        sidebarToggle.classList.add('sidebar-open');
+    }
+    
+    // Sidebar toggle
+    sidebarToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isMobile) {
+            // Mobile behavior
+            if (sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+                sidebarToggle.classList.remove('mobile-open');
+            } else {
+                sidebar.classList.add('mobile-open');
+                sidebarToggle.classList.add('mobile-open');
+            }
+        } else {
+            // Desktop behavior
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                sidebarToggle.classList.add('sidebar-open');
+            } else {
+                sidebar.classList.add('collapsed');
+                sidebarToggle.classList.remove('sidebar-open');
+            }
+        }
+        
+        // Update icon
+        const icon = this.querySelector('i');
+        if (icon) {
+            if (sidebar.classList.contains('mobile-open') || (!isMobile && !sidebar.classList.contains('collapsed'))) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            } else {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            }
+        }
+    });
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (isMobile && sidebar.classList.contains('mobile-open')) {
+            if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                sidebar.classList.remove('mobile-open');
+                sidebarToggle.classList.remove('mobile-open');
+                const icon = sidebarToggle.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-left');
+                    icon.classList.add('fa-chevron-right');
+                }
+            }
+        }
+    });
+    
+    // Handle window resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const newIsMobile = window.innerWidth <= 768;
+            
+            if (newIsMobile !== isMobile) {
+                // Reset sidebar state on breakpoint change
+                if (newIsMobile) {
+                    sidebar.classList.add('collapsed');
+                    sidebar.classList.remove('mobile-open');
+                    sidebarToggle.classList.remove('mobile-open');
+                } else {
+                    sidebar.classList.remove('collapsed', 'mobile-open');
+                    sidebarToggle.classList.add('sidebar-open');
+                }
+                
+                // Update icon
+                const icon = sidebarToggle.querySelector('i');
+                if (icon) {
+                    if (!newIsMobile) {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-left');
+                    } else {
+                        icon.classList.remove('fa-chevron-left');
+                        icon.classList.add('fa-chevron-right');
+                    }
+                }
+            }
+        }, 250);
+    });
+    
+    // Section switching
+    const sectionLinks = document.querySelectorAll('[data-section]');
+    sectionLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetSection = this.getAttribute('data-section');
+            
+            // Close mobile sidebar after selection
+            if (isMobile && sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+                sidebarToggle.classList.remove('mobile-open');
+                const icon = sidebarToggle.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-left');
+                    icon.classList.add('fa-chevron-right');
+                }
+            }
+            
+            switchSection(targetSection);
+            
+            // Update active state
+            sectionLinks.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+}
+
+// Switch between sections
+function switchSection(sectionName) {
+    console.log('Switching to section:', sectionName);
+    
+    // Hide all sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show target section
+    const targetSection = document.getElementById(sectionName + '-section');
+    if (targetSection) {
+        targetSection.classList.add('active');
+        
+        // Load section-specific data with proper error handling
+        console.log('Loading data for section:', sectionName);
+        
+        if (sectionName === 'dashboard') {
+            // Load dashboard data
+            Promise.all([
+                loadStats(),
+                loadRecentCheckins()
+            ]).then(() => {
+                console.log('Dashboard data loaded successfully');
+                showAlert('Dashboard loaded', 'success');
+            }).catch(error => {
+                console.error('Error loading dashboard data:', error);
+                showAlert('Error loading dashboard data', 'danger');
+            });
+        } else if (sectionName === 'employees') {
+            // Load employee data
+            loadUsers().then(() => {
+                console.log('Employee data loaded successfully');
+                showAlert('Employee data loaded', 'success');
+            }).catch(error => {
+                console.error('Error loading employee data:', error);
+                showAlert('Error loading employee data', 'danger');
+            });
+        }
+    } else {
+        console.error('Section not found:', sectionName + '-section');
+        showAlert('Section not found', 'danger');
+    }
+}
 
 // Attach event listeners to data-action elements
 function attachEventListeners() {
@@ -127,10 +314,71 @@ async function loadStats() {
                 ? Math.round((data.stats.todayCheckins / data.stats.totalUsers) * 100) 
                 : 0;
             document.getElementById('attendanceRate').textContent = rate + '%';
+            
+            // Update quick stats
+            document.getElementById('presentToday').textContent = data.stats.todayCheckins;
+            document.getElementById('absentToday').textContent = data.stats.totalUsers - data.stats.todayCheckins;
+            document.getElementById('lateToday').textContent = data.stats.lateToday || 0;
+            
+            console.log('Stats loaded successfully:', data.stats);
+            return data.stats;
+        } else {
+            throw new Error(data.error || 'Failed to load stats');
         }
         
     } catch (error) {
         console.error('Stats error:', error);
+        throw error;
+    }
+}
+
+// Load recent check-ins
+async function loadRecentCheckins() {
+    try {
+        const token = localStorage.getItem('sca_token');
+        const response = await fetch('/api/admin/recent-checkins', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const tbody = document.getElementById('recentCheckins');
+            tbody.innerHTML = '';
+            
+            if (data.checkins.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No recent check-ins</td></tr>';
+                return data.checkins;
+            }
+            
+            data.checkins.forEach(checkin => {
+                const row = document.createElement('tr');
+                const checkinTime = new Date(checkin.checkin_time).toLocaleString();
+                const statusBadge = checkin.status === 'present' 
+                    ? '<span class="badge bg-success">Present</span>'
+                    : '<span class="badge bg-warning">Late</span>';
+                
+                row.innerHTML = `
+                    <td>${checkin.full_name}</td>
+                    <td>${checkinTime}</td>
+                    <td>${statusBadge}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            console.log('Recent checkins loaded successfully:', data.checkins.length);
+            return data.checkins;
+        } else {
+            throw new Error(data.error || 'Failed to load recent check-ins');
+        }
+        
+    } catch (error) {
+        console.error('Recent checkins error:', error);
+        const tbody = document.getElementById('recentCheckins');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error loading recent check-ins</td></tr>';
+        throw error;
     }
 }
 
@@ -147,8 +395,13 @@ async function loadUsers() {
         const data = await response.json();
         
         if (data.success) {
-            const tbody = document.getElementById('usersTableBody');
+            const tbody = document.getElementById('usersTable');
             tbody.innerHTML = '';
+            
+            if (data.users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No employees found</td></tr>';
+                return data.users;
+            }
             
             data.users.forEach(user => {
                 const row = document.createElement('tr');
@@ -156,34 +409,41 @@ async function loadUsers() {
                     <td>${user.employee_id}</td>
                     <td>${user.full_name}</td>
                     <td>${user.email}</td>
-                    <td>${user.username}</td>
                     <td>
                         <span class="badge ${user.role === 'admin' ? 'bg-danger' : 'bg-primary'}">
                             ${user.role}
                         </span>
                     </td>
-                    <td>${new Date(user.created_at).toLocaleDateString()}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary me-1" data-action="view-user" data-user-id="${user.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning me-1" data-action="edit-user" data-user-id="${user.id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        ${user.role !== 'admin' ? `
-                            <button class="btn btn-sm btn-danger" data-action="delete-user" data-user-id="${user.id}" data-user-name="${user.full_name}">
-                                <i class="fas fa-trash"></i>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" data-action="view-user" data-user-id="${user.id}">
+                                <i class="fas fa-eye"></i>
                             </button>
-                        ` : ''}
+                            <button class="btn btn-sm btn-warning" data-action="edit-user" data-user-id="${user.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${user.role !== 'admin' ? `
+                                <button class="btn btn-sm btn-danger" data-action="delete-user" data-user-id="${user.id}" data-user-name="${user.full_name}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            console.log('Users loaded successfully:', data.users.length);
+            return data.users;
+        } else {
+            throw new Error(data.error || 'Failed to load users');
         }
         
     } catch (error) {
         console.error('Users error:', error);
-        showAlert('Error loading users', 'danger');
+        const tbody = document.getElementById('usersTable');
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading employees</td></tr>';
+        throw error;
     }
 }
 
@@ -221,9 +481,20 @@ async function generateReport(type) {
 
 // Refresh data
 function refreshData() {
-    loadStats();
-    loadUsers();
-    showAlert('Data refreshed successfully!', 'success');
+    const activeSection = document.querySelector('.content-section.active');
+    if (activeSection && activeSection.id === 'dashboard-section') {
+        loadStats();
+        loadRecentCheckins();
+        showAlert('Dashboard data refreshed successfully!', 'success');
+    } else if (activeSection && activeSection.id === 'employees-section') {
+        loadUsers();
+        showAlert('Employee data refreshed successfully!', 'success');
+    } else {
+        loadStats();
+        loadRecentCheckins();
+        loadUsers();
+        showAlert('Data refreshed successfully!', 'success');
+    }
 }
 
 // Show profile
@@ -593,3 +864,101 @@ document.addEventListener('keydown', function(e) {
         generateReport('monthly');
     }
 });
+
+// Real-time Notification System
+let socket = null;
+
+function initializeNotifications(token, userId) {
+    // Load Socket.IO client
+    const script = document.createElement('script');
+    script.src = 'https://cdn.socket.io/4.7.4/socket.io.min.js';
+    script.onload = function() {
+        socket = io();
+        
+        // Authenticate with WebSocket
+        socket.emit('authenticate', token);
+        
+        // Handle real-time notifications
+        socket.on('notification', function(data) {
+            showNotification(data);
+            
+            // Refresh data if it's attendance related
+            if (data.type === 'attendance') {
+                loadStats();
+                loadRecentCheckins();
+            }
+        });
+        
+        // Handle connection events
+        socket.on('connect', function() {
+            console.log('🔌 Admin connected to real-time notifications');
+            socket.emit('authenticate', token);
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('🔌 Admin disconnected from real-time notifications');
+        });
+    };
+    document.head.appendChild(script);
+}
+
+function showNotification(data) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification-toast';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas ${getNotificationIcon(data.type)}"></i>
+            </div>
+            <div class="notification-text">
+                <div class="notification-title">${data.title}</div>
+                <div class="notification-message">${data.message}</div>
+                <div class="notification-time">${formatNotificationTime(data.timestamp)}</div>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto remove after 8 seconds (longer for admin)
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
+    
+    // Play notification sound
+    playNotificationSound();
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'checkin': 'fa-sign-in-alt text-success',
+        'checkout': 'fa-sign-out-alt text-warning',
+        'attendance': 'fa-clock text-info',
+        'general': 'fa-bell text-primary',
+        'warning': 'fa-exclamation-triangle text-warning',
+        'error': 'fa-exclamation-circle text-danger',
+        'system': 'fa-cog text-secondary'
+    };
+    return icons[type] || icons.general;
+}
+
+function formatNotificationTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function playNotificationSound() {
+    // Create a subtle notification sound
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBi6GyvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+    audio.volume = 0.3;
+    audio.play().catch(e => console.log('Could not play notification sound:', e));
+}

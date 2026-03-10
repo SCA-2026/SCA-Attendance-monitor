@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
@@ -10,6 +11,7 @@ const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -17,17 +19,17 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 app.use(cors());
 
-// Content Security Policy - allow Bootstrap and Font Awesome CDN
+// Content Security Policy - allow Bootstrap, Font Awesome, Google Fonts and inline styles
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
     "default-src 'self'; " +
-    "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-    "script-src-attr 'none'; " +
-    "style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-    "style-src-attr 'none'; " +
-    "font-src 'self' https://cdnjs.cloudflare.com; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self'; " +
+    "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'; " +
+     "script-src-attr 'none'; " +
+    "style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com 'unsafe-inline'; " +
+    "style-src-attr 'unsafe-inline'; " +
+    "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self' https://cdn.jsdelivr.net; " +
     "manifest-src 'self'; " +
     "object-src 'none'; " +
     "frame-ancestors 'none'; " +
@@ -78,13 +80,63 @@ db.serialize(() => {
 // JWT Secret
 const JWT_SECRET = 'sca_attendance_secret_key';
 
-// Email transporter setup
+// WebSocket for real-time notifications
+const http = require('http');
+const server = http.createServer(app);
+const io = require('socket.io')(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Email transporter setup with enhanced configuration
 let transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'sca.attendance@gmail.com',
     pass: process.env.EMAIL_PASS || 'your-app-password'
+  },
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  rateDelta: 1000,
+  rateLimit: 5
+});
+
+// Verify email configuration
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('Email configuration error:', error);
+  } else {
+    console.log('✉️ Email server is ready to send messages');
   }
+});
+
+// Store connected users for real-time notifications
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log('🔌 User connected:', socket.id);
+  
+  socket.on('authenticate', (token) => {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      connectedUsers.set(decoded.id, socket.id);
+      socket.userId = decoded.id;
+      console.log(`👤 User ${decoded.id} authenticated for real-time notifications`);
+    } catch (error) {
+      console.error('WebSocket authentication failed:', error);
+      socket.disconnect();
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    if (socket.userId) {
+      connectedUsers.delete(socket.userId);
+      console.log(`👤 User ${socket.userId} disconnected`);
+    }
+  });
 });
 
 // File upload for logo
@@ -135,8 +187,14 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Email sending function
-async function sendEmail(to, subject, html) {
+// Email queue and retry logic
+const emailQueue = [];
+const MAX_RETRIES = 3;
+
+// Enhanced email sending function with retry and real-time notifications
+async function sendEmail(to, subject, html, userId = null, notificationType = 'general') {
+  const emailData = { to, subject, html, userId, notificationType, retries: 0 };
+  
   try {
     await transporter.sendMail({
       from: '"SCA Attendance System" <sca.attendance@gmail.com>',
@@ -144,9 +202,65 @@ async function sendEmail(to, subject, html) {
       subject,
       html
     });
-    console.log('Email sent successfully to:', to);
+    
+    console.log('✅ Email sent successfully to:', to);
+    
+    // Send real-time notification if user is connected
+    if (userId && connectedUsers.has(userId)) {
+      const socketId = connectedUsers.get(userId);
+      io.to(socketId).emit('notification', {
+        type: notificationType,
+        title: subject,
+        message: extractMessageFromHtml(html),
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    return { success: true };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email:', error);
+    
+    // Add to queue for retry if failed
+    if (emailData.retries < MAX_RETRIES) {
+      emailData.retries++;
+      emailQueue.push(emailData);
+      console.log(`📧 Email queued for retry (${emailData.retries}/${MAX_RETRIES}):`, to);
+      
+      // Retry after delay
+      setTimeout(() => processEmailQueue(), 5000 * emailData.retries);
+    } else {
+      console.error(`💀 Email failed after ${MAX_RETRIES} retries:`, to);
+    }
+    
+    return { success: false, error: error.message };
+  }
+}
+
+// Process email queue
+async function processEmailQueue() {
+  if (emailQueue.length === 0) return;
+  
+  const emailData = emailQueue.shift();
+  await sendEmail(emailData.to, emailData.subject, emailData.html, emailData.userId, emailData.notificationType);
+}
+
+// Extract plain text message from HTML
+function extractMessageFromHtml(html) {
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 100);
+}
+
+// Send real-time notification without email
+function sendRealTimeNotification(userId, type, title, message, data = {}) {
+  if (connectedUsers.has(userId)) {
+    const socketId = connectedUsers.get(userId);
+    io.to(socketId).emit('notification', {
+      type,
+      title,
+      message,
+      timestamp: new Date().toISOString(),
+      data
+    });
+    console.log(`🔔 Real-time notification sent to user ${userId}:`, title);
   }
 }
 
@@ -355,7 +469,22 @@ app.post('/api/checkin', authenticateToken, async (req, res) => {
       </div>
     `;
     
-    await sendEmail(user.email, 'Check-in Successful - SCA Attendance System', checkinEmail);
+    await sendEmail(user.email, 'Check-in Successful - SCA Attendance System', checkinEmail, user.id, 'checkin');
+    
+    // Send additional real-time notification to admin users
+    const adminUsers = await new Promise((resolve, reject) => {
+      db.all('SELECT id FROM users WHERE role = ?', ['admin'], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    adminUsers.forEach(admin => {
+      sendRealTimeNotification(admin.id, 'attendance', 'Employee Check-in', 
+        `${user.full_name} (${user.employee_id}) has checked in at ${new Date().toLocaleTimeString()}`,
+        { employeeId: user.employee_id, employeeName: user.full_name, time: new Date().toISOString() }
+      );
+    });
 
     res.json({ success: true, message: 'Check-in successful!' });
 
@@ -430,7 +559,22 @@ app.post('/api/checkout', authenticateToken, async (req, res) => {
       </div>
     `;
     
-    await sendEmail(user.email, 'Check-out Successful - SCA Attendance System', checkoutEmail);
+    await sendEmail(user.email, 'Check-out Successful - SCA Attendance System', checkoutEmail, user.id, 'checkout');
+    
+    // Send additional real-time notification to admin users
+    const adminUsers = await new Promise((resolve, reject) => {
+      db.all('SELECT id FROM users WHERE role = ?', ['admin'], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    adminUsers.forEach(admin => {
+      sendRealTimeNotification(admin.id, 'attendance', 'Employee Check-out', 
+        `${user.full_name} (${user.employee_id}) has checked out at ${new Date().toLocaleTimeString()} - Total hours: ${totalHours}`,
+        { employeeId: user.employee_id, employeeName: user.full_name, totalHours, time: new Date().toISOString() }
+      );
+    });
 
     res.json({ success: true, message: 'Check-out successful!', totalHours });
 
@@ -627,6 +771,40 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Stats error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Get recent check-ins for admin dashboard
+app.get('/api/admin/recent-checkins', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required' });
+  }
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const recentCheckins = await new Promise((resolve, reject) => {
+      db.all(`
+        SELECT a.*, u.full_name, u.employee_id 
+        FROM attendance a 
+        JOIN users u ON a.employee_id = u.employee_id 
+        WHERE a.date = ? AND a.check_in_time IS NOT NULL 
+        ORDER BY a.check_in_time DESC 
+        LIMIT 10
+      `, [today], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+
+    res.json({
+      success: true,
+      checkins: recentCheckins
+    });
+
+  } catch (error) {
+    console.error('Recent checkins error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
@@ -1070,15 +1248,62 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Test email configuration
+app.post('/api/test-email', authenticateToken, async (req, res) => {
+  try {
+    const user = req.user;
+    
+    // Test email transporter
+    await transporter.verify();
+    
+    // Send test email
+    const testEmail = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
+          <h1 style="margin: 0;">📧 Email Test Successful</h1>
+        </div>
+        <div style="padding: 30px; background: #f9f9f9;">
+          <h2>Hello ${user.full_name},</h2>
+          <p>This is a test email to confirm your email configuration is working correctly.</p>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>📅 Test Time:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>👤 User:</strong> ${user.full_name} (${user.employee_id})</p>
+            <p><strong>📧 Email:</strong> ${user.email}</p>
+          </div>
+          <p style="color: #28a745; font-weight: bold;">✅ Your email system is working perfectly!</p>
+        </div>
+        <div style="background: #333; color: white; padding: 20px; text-align: center; font-size: 12px;">
+          <p>SCA Attendance System - Email Test</p>
+        </div>
+      </div>
+    `;
+    
+    await sendEmail(user.email, '✅ Email Test - SCA Attendance System', testEmail, user.id, 'test');
+    
+    res.json({ 
+      success: true, 
+      message: 'Test email sent successfully! Check your inbox.' 
+    });
+    
+  } catch (error) {
+    console.error('Email test error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Email test failed: ' + error.message 
+    });
+  }
+});
+
 // Default route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server with WebSocket support
+server.listen(PORT, () => {
   console.log(`🚀 SCA Attendance System running on port ${PORT}`);
   console.log(`📱 PWA ready: http://localhost:${PORT}`);
   console.log(`👨‍💼 Admin: http://localhost:${PORT}/admin.html`);
   console.log(`👤 Employee: http://localhost:${PORT}/employee.html`);
+  console.log(`🔌 Real-time notifications enabled`);
 });
